@@ -1,12 +1,79 @@
-import React from 'react';
-import {Link} from 'react-router-dom'
+import React, { useState, useEffect } from 'react';
+import Select from 'react-select';
+import { Link, useHistory } from 'react-router-dom'
 import { FiArrowLeft } from 'react-icons/fi';
+
+import api from "../../services/api";
 
 import './styles.css';
 
 import logoImg from '../../assets/comerciolocal_logo.svg'
 
 export default function Register(){
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [whatsapp, setWhatsapp] = useState('');
+    const [city, setCity] = useState('');
+    const [uf, setUf] = useState('');
+    const [estados, setEstados] = useState([]);
+    const [cidades, setCidades] = useState([]);
+
+    const history = useHistory();
+
+    useEffect(()=> {
+        api.get("/states").then(response => {
+            let estados = [];
+            response.data.forEach(element => {
+                estados.push({
+                    value: element.sigla,
+                    label: element.sigla
+                });
+            });
+            setEstados(estados);
+        });
+
+    }, []); // Executado apenas uma vez
+
+    useEffect(()=> {
+        if (uf === '') return;
+        
+        api.get(`/states/${uf}/cities`).then(response => {
+            let cidades = [];
+            response.data.forEach(e => {
+                cidades.push({
+                    value: e.id,
+                    label: e.name
+                });
+            });
+            setCidades(cidades);
+        });
+    }, [uf]); // Executado toda vez que o 'uf' for alterado.
+
+    async function handleRegister(e){        
+        e.preventDefault();
+        const data = {
+                name,
+                description,
+                email,
+                whatsapp,
+                phone,
+                city
+        };
+
+        try
+        {
+            const response = await api.post('/comercios', data);
+
+            alert(`Seu Id de acesso: ${response.data.id}`);
+
+            history.push('/');
+        } catch (err) {
+            alert('Ocorreu um erro. Tente novamente.');            
+        }
+    }
+
     return (
         <div className="register-container">
              <div className="container">
@@ -19,16 +86,16 @@ export default function Register(){
                        Voltar ao Login
                     </Link>
                 </section>
-                <form to="/cadastrar/confirmacao">
-                    <input placeholder="Nome do Comercio" />
-                    <input type="text" placeholder="Comercio" />
-                    <input type="email" placeholder="E-mail" />
-                    <input type="phone" placeholder="Telefone" />
-                    <input type="phone" placeholder="WhatsApp" />
+                <form onSubmit={handleRegister}>
+                    <input type="text" placeholder="Comercio" value={name} onChange={e => setName(e.target.value) } />
+                    <textarea type="text" placeholder="Descrição" value={description} onChange={e => setDescription(e.target.value) } />
+                    <input type="email" placeholder="E-mail" value={email} onChange={e => setEmail(e.target.value) } />
+                    <input type="phone" placeholder="Telefone" value={phone} onChange={e => setPhone(e.target.value) } />
+                    <input type="phone" placeholder="WhatsApp" value={whatsapp} onChange={e => setWhatsapp(e.target.value) } />
                     
                     <div className="input-group">
-                        <input placeholder="Cidade" />
-                        <input placeholder="UF" style={{ width:80 }} />
+                        <Select options={cidades} placeholder="Cidade" onChange={e => setCity(e.value) } />
+                        <Select options={estados} style={{ width:80 }} onChange={e => setUf(e.value) } />
                     </div>
 
                     <button className="button" type="submit">Cadastrar</button>
